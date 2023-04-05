@@ -324,6 +324,7 @@ with program() as game:
     rays_a = declare(fixed, value=[0]*N_rays)
     
     asteroids_active = declare(bool, value=[True]*N_asteroids)
+    # TODO check if the "float16" are actually necessary, as the qua object is a 4.28 fixed point number
     asteroids_x = declare(fixed, value=rng.uniform(-field_size, field_size, N_asteroids).astype("float16"))#[.4, .3, .2, .1, 0, .1, .2, .3, .4, .4])#rng.uniform(-field_size, field_size, N_asteroids).astype("float16"))
     asteroids_y = declare(fixed, value=rng.uniform(-field_size, field_size, N_asteroids).astype("float16"))#[-.4, -.3, -.2, -.1, 0, .1, .2, .3, .4, -.4])#rng.uniform(-field_size, field_size, N_asteroids).astype("float16"))
     asteroids_a = declare(fixed, value=rng.uniform(-.5, .5, N_asteroids).astype("float16"))#[.1, .2, .3, .4, .3, .2, .1, .0, -.1, -.2])#rng.uniform(-.5, .5, N_asteroids).astype("float16"))

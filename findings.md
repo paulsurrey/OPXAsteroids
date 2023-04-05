@@ -59,11 +59,16 @@ And the following line did not stop with False, thus & seams to be evaluated bef
 ```pyton
 Math.pow(base, x)
 ```
-is very funny. When using it to calculate the distance between two points, it did return values smaller than 0. So multiplying the values with each other to get a square is working.
+is very funny. When using it to calculate the distance between two points, it returned values smaller than 0. 
+So multiplying the values with each other to get a square is working.
 
 ---
 
-
+Not well documented/investigated findings:
+- When playing around with 3 asteroids, some of them start rotating. But their rotation is not actively written to. (There are video clips of that happening)
+- The pulses get distorted at the max range of the oscilloscope and the OPX, which had been set to the same voltage. (video clip existing)
+- The drawn border is not drawn correctly: at least 2 of the corners (-.5V, .5V) and (.5V, -.5V) are smoothed/concave. And the border is not drawn completely.
+- 
 
 
 
