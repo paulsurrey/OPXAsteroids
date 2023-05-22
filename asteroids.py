@@ -68,6 +68,7 @@ intermediate_frequency = 0
 # sprite pulse length
 sprite_length = 1000
 
+# The time to wait after drawing all sprites before starting processing the next frame. This is independent of `time_step_size`.
 wait_time = 1e7/2 # ns
 
 input_probe_voltage = .5 # V
@@ -138,19 +139,7 @@ configuration = {
         },
         'time_of_flight': 100,
         'smearing': 0
-        # 'integration_weights': {
-        #     'integ1': 'cosine_weights',
-        # },
     },
-    # 'marker': {
-    #     'singleInput ': {
-    #         'm': ('con1', 3),
-    #         },
-    #     'intermediate_frequency': intermediate_frequency,
-    #     'operations': {
-    #         'draw_trigger': 'draw_trigger'
-    #     },
-    # },
 },
 'pulses': {
     **{n: {
@@ -222,7 +211,7 @@ qm = qmm.open_qm(configuration)
 
 #%%
 
-def move_curser(x, y):
+def move_cursor(x, y):
     # go to the (x, y) position
     set_dc_offset("screen", "I", x)
     set_dc_offset("screen", "Q", y)
@@ -231,27 +220,27 @@ def get_rot_amp(a):
     return amp(Math.cos2pi(a), -Math.sin2pi(a), Math.sin2pi(a), Math.cos2pi(a))
 
 def draw_by_name(name, x, y, a):
-    move_curser(x, y)
+    move_cursor(x, y)
     play(name * get_rot_amp(a), 'screen')
     align()
 
 def draw_ship(x, y, a):
-    move_curser(x, y)
+    move_cursor(x, y)
     play('ship' * get_rot_amp(a), 'screen')
     align()
 
 def draw_ray(x, y, a):
-    move_curser(x, y)
+    move_cursor(x, y)
     play('ray' * get_rot_amp(a), 'screen')
     align()
 
 def draw_asteroid(x, y, a):
-    move_curser(x, y)
+    move_cursor(x, y)
     play('asteroid' * get_rot_amp(a), 'screen')
     align()
 
 def draw_border():
-    move_curser(0, 0)
+    move_cursor(0, 0)
     play('border', 'screen')
     align()
 
@@ -273,14 +262,14 @@ def ray_hit(ray_x, ray_y, asteroid_x, asteroid_y):
 def cycle_clip(x, upper, lower):
     with if_(x > upper):
         assign(x, lower)
-    with if_(x < lower):
+    with elif_(x < lower):
         assign(x, upper)
     return x
 
 def clip(x, upper, lower):
     with if_(x > upper):
         assign(x, upper)
-    with if_(x < lower):
+    with elif_(x < lower):
         assign(x, lower)
     return x
 
@@ -288,26 +277,11 @@ def process_border_collisions(x, y):
 
     for e in [x, y]:
         cycle_clip(e, field_size, -field_size)
-
-    # for e in [x, y]:
-    #     with if_(e > field_size):
-    #         assign(e, -field_size)
-    #     with elif_(e < -field_size):
-    #         assign(e, field_size)
-
-    # # with if_(x > field_size):
-    # #     assign(x, 0)
-    # # with elif_(x < 0):
-    # #     assign(x, field_size)
-
-    # # with if_(y > field_size):
-    # #     assign(y, 0)
-    # # with elif_(y < 0):
-    # #     assign(y, field_size)
+    return x, y
 
 def clip_angle(a):
     return cycle_clip(a, .5, -.5)
-
+    
 def clip_velocity(v):
     return clip(v, max_speed, -max_speed)
 
@@ -331,10 +305,10 @@ with program() as game:
     ship_a = declare(fixed, 0)
     ship_x = declare(fixed, 0)
     ship_y = declare(fixed, 0)
-    ship_x_old = declare(fixed, 0)
-    ship_y_old = declare(fixed, 0)
-    ship_x_old2 = declare(fixed, 0)
-    ship_y_old2 = declare(fixed, 0)
+    # ship_x_old = declare(fixed, 0)
+    # ship_y_old = declare(fixed, 0)
+    # ship_x_old2 = declare(fixed, 0)
+    # ship_y_old2 = declare(fixed, 0)
     ship_vx = declare(fixed, 0)
     ship_vy = declare(fixed, 0)
 
@@ -343,7 +317,7 @@ with program() as game:
     rays_x = declare(fixed, value=[0]*N_rays)
     rays_y = declare(fixed, value=[0]*N_rays)
     rays_a = declare(fixed, value=[0]*N_rays)
-
+    
     asteroids_active = declare(bool, value=[True]*N_asteroids)
     asteroids_x = declare(fixed, value=rng.uniform(-field_size, field_size, N_asteroids))#[.4, .3, .2, .1, 0, .1, .2, .3, .4, .4])#rng.uniform(-field_size, field_size, N_asteroids).astype("float16"))
     asteroids_y = declare(fixed, value=rng.uniform(-field_size, field_size, N_asteroids))#[-.4, -.3, -.2, -.1, 0, .1, .2, .3, .4, -.4])#rng.uniform(-field_size, field_size, N_asteroids).astype("float16"))
@@ -459,16 +433,16 @@ with program() as game:
         with for_(i, 0, i<N_rays, i+1):
             with if_(rays_active[i]):
                 # check age
-                with if_(rays_age[i] >= 0): # the ray is still alive
+                with if_(rays_age[i] > 0): # the ray is still alive
                     assign(rays_age[i], rays_age[i]-dt)
                     # update position
                     assign(rays_x[i], rays_x[i]+Math.cos2pi(rays_a[i])*v_ray*dt)
                     assign(rays_y[i], rays_y[i]+Math.sin2pi(rays_a[i])*v_ray*dt)
-                with if_(rays_age[i] < 0):
+                with else_():
                     assign(rays_active[i], False)
 
         # move asteroids
-        with for_(j, 0, j<N_rays, j+1):
+        with for_(j, 0, j<N_asteroids, j+1):
             with if_(asteroids_active[j]):
                 assign(asteroids_x[j], asteroids_x[j]+Math.cos2pi(asteroids_a[j])*v_asteroid*dt)
                 assign(asteroids_y[j], asteroids_y[j]+Math.sin2pi(asteroids_a[j])*v_asteroid*dt)
