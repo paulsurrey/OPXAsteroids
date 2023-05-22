@@ -2,7 +2,7 @@
 
 Demonstrating the real time capabilities of the [QM OPX](https://www.quantum-machines.co/products/opx/) by implementing and playing [Asteroids](https://de.wikipedia.org/wiki/Asteroids) on its FPGA.
 
-<img src="./Screenshot.svg" alt="A photo of an oscilloscope showing a basic implementation of Asteroids and a controller with 4 buttons. The Oscilloscope is placed on top an QM OPX." width="600">
+<img src="./Screenshot.png" alt="A photo of an oscilloscope showing a basic implementation of Asteroids and a controller with 4 buttons. The Oscilloscope is placed on top an QM OPX." width="400">
 
 ## A Closer Look
 

@@ -15,26 +15,23 @@ from sprites import *
 
 #%%
 
-
 # TODO implement some smaller programs for testing.
-# TODO fix the configuration
 # TODO fix the units of the measurement
-# TODO implement handling and evaluation of the user input measurements
 
 # the size of the field
-# The field things will be able to move in will be in the range of +- field_size.
+# The objects on the field will be able to move in the range of +-1*field_size.
 field_size = 0.5 # V
 
-# Number of rays to be handled
+# The upper limit of the number of rays that are processed
 N_rays = 10 # 1
 
-# speed with which the rays move
+# the speed with which the rays move
 v_ray = 1.5 # V/s
 
 # the duration before the rays decay
 max_ray_age = 2 # s
 
-# the delay between spawning rays
+# the delay between spawning rays. I.e. spawns at most 1 ray in that duration
 ray_spawn_delay = 0.1 # s
 
 # Number of asteroids to be spawned
@@ -57,20 +54,22 @@ ship_rotation_speed = 2.0 # 2*pi/s
 
 # the amount of time the game is advanced every tick
 # as the timing is not implemented yet, this value sets the amount of time that passes for each tick.
+# and thus is used for the dt in the equations moving the elements.
 time_step_size = 0.01 # s
 
-# pulse lengths
+# the duration of the pulse used to probe the user input (for one side of the controller)
 user_input_pulse_length = 500000 # ns
 
-# intermediate_frequency
+# intermediate_frequency that is used for all components
 intermediate_frequency = 0
 
-# sprite pulse length
+# the pulse length in number of samples used to draw the sprites
 sprite_length = 1000
 
 # The time to wait after drawing all sprites before starting processing the next frame. This is independent of `time_step_size`.
 wait_time = 1e7/2 # ns
 
+# the amplitude used to probe the controller.
 input_probe_voltage = .5 # V
 
 #%%
@@ -289,8 +288,10 @@ def get_inputs(a, b, sign=1):
     measure("measure_user_input"*amp(sign), "user_input_element", None,
             integration.full("constant", a, "a"),
             integration.full("constant", b, "b"))
+    # As per the documentation (and a short discussion with a colleague), the output should be normalized as follows:
     # assign(a, a/user_input_pulse_length/(2**12)/float(sign))
     # assign(b, b/user_input_pulse_length/(2**12)/float(sign))
+    # but this did not work. So the thresholds are chosen experimentally.
     assign(a, a/float(sign))
     assign(b, b/float(sign))
     return a, b
@@ -319,9 +320,9 @@ with program() as game:
     rays_a = declare(fixed, value=[0]*N_rays)
     
     asteroids_active = declare(bool, value=[True]*N_asteroids)
-    asteroids_x = declare(fixed, value=rng.uniform(-field_size, field_size, N_asteroids))#[.4, .3, .2, .1, 0, .1, .2, .3, .4, .4])#rng.uniform(-field_size, field_size, N_asteroids).astype("float16"))
-    asteroids_y = declare(fixed, value=rng.uniform(-field_size, field_size, N_asteroids))#[-.4, -.3, -.2, -.1, 0, .1, .2, .3, .4, -.4])#rng.uniform(-field_size, field_size, N_asteroids).astype("float16"))
-    asteroids_a = declare(fixed, value=rng.uniform(-.5, .5, N_asteroids))#[.1, .2, .3, .4, .3, .2, .1, .0, -.1, -.2])#rng.uniform(-.5, .5, N_asteroids).astype("float16"))
+    asteroids_x = declare(fixed, value=rng.uniform(-field_size, field_size, N_asteroids))
+    asteroids_y = declare(fixed, value=rng.uniform(-field_size, field_size, N_asteroids))
+    asteroids_a = declare(fixed, value=rng.uniform(-.5, .5, N_asteroids))
 
     t = declare(fixed, 0)
     t_prim = declare(fixed, 0)
@@ -368,9 +369,7 @@ with program() as game:
 
         '''
 
-        # # TODO
         get_inputs(a, b, sign=1.0)
-        # with if_(a > 7567.99999999999):
         with if_(a < 2.467):
             assign(ui_phi, -1)
         with if_(b < 2.939):

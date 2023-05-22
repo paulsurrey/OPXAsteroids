@@ -34,7 +34,7 @@ def sample_with_speed(x, y, speed):
 	
 	distances = calc_distances(x, y)
 	cumdis = np.cumsum(distances)
-
+	raise NotImplementedError()
 	return resample_trace(x, y, cumdis*speed)
 
 def get_ship_pulse(points):
