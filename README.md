@@ -134,7 +134,7 @@ The choice of the resistor was chosen as follows:
 To increase the contrast, the resistor R2 was bridged, where as removing R1 might have been a better approach.
 
 ## Binary Encoder
-Simon Humpohl suggested to encode the 4 buttons by bridging increasing resistors. The resistor that is to be bridged by button $R_i = 2^i*R_0$ where the resistor $R_0$ is one resistor in line to limit the current flow when all buttons are pressed, and the resistors $R_1$, ..., $R_4$ are then the resistors that are bridged by the buttons. This way the overall resistivity can be related to the button pressed by means of looking at the binary representation of the measured resistance $R$: $(R-R_0)/R_0$.
+Simon Humpohl suggested to encode the 4 buttons by bridging increasing resistors. The resistor that is to be bridged by button $R_i = 2^i*R_0$ where the resistor $R_0$ is one resistor in line to limit the current flow when all buttons are pressed, and the resistors $R_1$, ..., $R_4$ are then the resistors that are bridged by the buttons. This way the overall resistivity can be related to the button pressed by means of looking at the binary representation of the measured resistance $R$: $R/R_0$.
 A very clever solution Simon came up with.
 
 When using a controller based on the binary encoding, only one input of the OPX is required for one user input. Thus two controllers should be supportable. 
