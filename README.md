@@ -111,8 +111,8 @@ def clip_velocity(v):
 To play around with the [measurement functionality](https://docs.quantum-machines.co/0.1/qm-qua-sdk/docs/Guides/features/?h=measure#measure-statement-features) of the OPX, a basic user input to the Asteroids game was investigated. The Implementation **is just meeting the goal** of playing Asteroids on the OPX. For example, the contrast of the readout is (for the positive side of the controller) not stable: The contrast between a not pressed and pressed button on the positive side of the controller is very small. And the levels also drift around, such that one had to reconfigure the thresholds in the order of ~0.002 (for the positive side) (A method to plot these values and measure that drift is can be commented in). 
 
 There are currently a few unanswered questions that are related to this problem:
-- When measuring for longer duration: Do overflows occur? Can one break the long window into smaller ones?
-- How does the common mode voltage on the inputs influence the readout? Would an 1:1 operational amplifier before the OPX as an additional layer of safety also help increase the readout contrast?
+- When measuring for longer duration: Do overflows occur? Can one break the long window into smaller ones, e.g. using a running mean?
+- How does the common mode voltage on the inputs influence the readout? Would an 1:1 operational amplifier before the OPX as an additional layer of safety also help increase the readout contrast? Is this a small fluctuation that is amplified by the overflowing measurement?
 - Can one optimize the circuit? Does a different choice for the resistors increase the readout contrast? Would a low pass just before the OPX smooth increase the stability of the readout method?
 - Does the tested circuit apply unnecessary stress to the OPX? Is this setup capable of running for longer times?
 
@@ -133,6 +133,11 @@ The choice of the resistor was chosen as follows:
 
 To increase the contrast, the resistor R2 was bridged, where as removing R1 might have been a better approach.
 
+## Binary Encoder
+Simon Humpohl suggested to encode the 4 buttons by bridging increasing resistors. The resistor that is to be bridged by button $R_i = 2^i*R_0$ where the resistor $R_0$ is one resistor in line to limit the current flow when all buttons are pressed, and the resistors $R_1$, ..., $R_4$ are then the resistors that are bridged by the buttons. This way the overall resistivity can be related to the button pressed by means of looking at the binary representation of the measured resistance $R$: $(R-R_0)/R_0$.
+A very clever solution Simon came up with.
+
+When using a controller based on the binary encoding, only one input of the OPX is required for one user input. Thus two controllers should be supportable. 
 
 ## Problems
 
