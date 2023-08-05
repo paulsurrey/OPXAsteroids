@@ -1,9 +1,4 @@
-
-import os
-# os.chdir(r'C:\Users\lablocal\Desktop\OPXAsteroids')
-os.chdir(r'C:\Users\lab2\Desktop\OPXAsteroids')
-
-
+import numpy as np
 import matplotlib.pyplot as plt
 
 from qm import SimulationConfig
@@ -72,6 +67,12 @@ wait_time = 1e7/2 # ns
 # the amplitude used to probe the controller.
 input_probe_voltage = .5 # V
 
+# calculating the maximal duration of the readout windows such that no overflow occurs
+# NOTE The variable max_readout_duration is part of an sketch of a IIR low pass measurement that should keept the measured value within the rage of the qua variables. 
+# NOTE But this sketch is mostly a guess. And not tested.
+# NOTE https://docs.quantum-machines.co/0.1/qm-qua-sdk/docs/Guides/demod/?h=fixed#fixed-point-format
+max_readout_duration = np.floor((2**2-0.1)/np.abs(input_probe_voltage)) # in units of ns
+
 #%%
 
 configuration = {
@@ -135,6 +136,7 @@ configuration = {
         'intermediate_frequency': intermediate_frequency,
         'operations': {
             "measure_user_input": "measure_user_input",
+            "short_measure_user_input": "short_measure_user_input",
         },
         'time_of_flight': 100,
         'smearing': 0
@@ -150,6 +152,14 @@ configuration = {
     "measure_user_input": {
         "operation": "measurement",
         'length': user_input_pulse_length,
+        "integration_weights": {
+            "constant": "cosine_weights",
+        },
+        'waveforms': {"single": "input_wf"},
+    },
+    "short_measure_user_input": {
+        "operation": "measurement",
+        'length': max_readout_duration,
         "integration_weights": {
             "constant": "cosine_weights",
         },
@@ -283,6 +293,64 @@ def clip_angle(a):
     
 def clip_velocity(v):
     return clip(v, max_speed, -max_speed)
+
+def get_inputs_iir_lowpass(a, b, sign=1):
+    """ This function gets the inputs by not measuring for the whole duration into one fixed variable, but measuring for short duration and averaging over time.
+
+    This function is not test!
+
+    Parameter
+    ---------
+    a, b
+        the fixed variables into which the measurement results is to be saved
+    sign:Union[int, float]
+        The sign of the readout pulse that is to be applied.
+
+    Returns
+    -------
+    a, b
+        the fixed into which the measurement results were saved
+    """
+
+    raise NotImplementedError(f"This function is not tested. Feel free to test it and contribute to the project :)")
+
+    # calculating the number of windows that are required
+    n_windows = np.ceil(user_input_pulse_length/max_readout_duration)
+
+    # averaging factor
+    f = 1-np.exp(-1/(n_windows/5))
+
+    # setting the output fields to 0
+    assign(a, 0)
+    assign(b, 0)
+
+    # instantiating temporary variables
+    _a = declare(fixed, 0)
+    _b = declare(fixed, 0)
+    i = declare(int, 0)
+
+    # the loop that measures multiple times and updates the running mean
+    with for_(i, 0, i<n_windows, i+1):
+        # performing the measurement and saving the results in _a and _b
+        measure("short_measure_user_input"*amp(sign), "user_input_element", None,
+            integration.full("constant", _a, "a"),
+            integration.full("constant", _b, "b"))
+
+        # normalize the measurement result
+        assign(_a, _a/max_readout_duration/float(sign))
+        assign(_b, _b/max_readout_duration/float(sign))
+
+        # update the running mean saved in a and b
+        with if_(i == 0):
+            # setting the first measurements directly
+            assign(a, _a)
+            assign(b, _b)
+        with else_():
+            assign(a, (1-f)*a+f*_a)
+            assign(b, (1-f)*b+f*_b)
+
+    return a, b
+
 
 def get_inputs(a, b, sign=1):
     measure("measure_user_input"*amp(sign), "user_input_element", None,
