@@ -6,14 +6,14 @@ Demonstrating the real time capabilities of the [QM OPX](https://www.quantum-mac
 
 ## A Closer Look
 
-The [qua](https://docs.quantum-machines.co/0.1/qm-qua-sdk/docs/API_references/qua/dsl_main/) API allows for programming the OPX's FPGA compatibly easy and with very little overhead within python. So the challenge of building Asteroids on the OPX can be boiled down the the following problems:
-- How does one output rotated and offset pulses?
+The [qua](https://docs.quantum-machines.co/0.1/qm-qua-sdk/docs/API_references/qua/dsl_main/) API allows for programming the OPX's FPGA comparably easy and with very little overhead within python. So the challenge of building Asteroids on the OPX can be boiled down solving the following problems:
+- How does one output rotated and offseted pulses?
 - How does one write the game logic to run on the FPGA?
 - How does one obtain some user input?
 
 ### Drawing Images
 
-To draw 2D images, the [I/Q output](https://docs.quantum-machines.co/0.1/qm-qua-sdk/docs/Introduction/qua_overview/?h=amp#mixed-inputs-element) of the OPX is used to not feed a I/Q modulator (e.g. [QM's Octave](https://www.quantum-machines.co/products/octave/)) but to directly feed into two inputs of an Oscilloscope, which then plots these two channels in some XY Display. (he `'lo_frequency'` is set to 0Hz.)
+To draw 2D images, the [I/Q output](https://docs.quantum-machines.co/0.1/qm-qua-sdk/docs/Introduction/qua_overview/?h=amp#mixed-inputs-element) of the OPX is used to not feed a I/Q modulator (e.g. [QM's Octave](https://www.quantum-machines.co/products/octave/)) but to directly feed into two inputs of an Oscilloscope, which then plots these two channels in some XY Display. (the `'lo_frequency'` is set to 0Hz.)
 Using the I/Q output of the OPX allows for the usage of the [`amp()`](https://docs.quantum-machines.co/0.1/qm-qua-sdk/docs/API_references/qua/dsl_main/?h=amp#qm.qua._dsl.amp) function, which allows to mix the I and Q outputs using variables:
 ``` python
 play('pulse_name' * amp(v_00, v_01, v_10, v_11), 'element')
@@ -49,9 +49,9 @@ assign(ship_vy, ship_vy+Math.sin2pi(ship_a)*ui_forward*ship_acceleration*dt)
 clip_velocity(ship_vy)
 clip_velocity(ship_vx)
 ```
-Where `dt` is the time step that is to be realized in this frame, `ui_forward` is a [`fixed`](https://docs.quantum-machines.co/0.1/qm-qua-sdk/docs/Guides/demod/?h=fixed#fixed-point-format) variable that is filled with `{-1, 1}` based on the users input, and `ship_acceleration` is a python variable containing the acceleration that the ship should have. `clip_velocity` is a function that clips each component of the ship's velocity to some maximal velocity. The other variables are all variables on the FPGA.
+Where `dt` is the time step that is to be realized in this frame, `ui_forward` is a [`fixed`](https://docs.quantum-machines.co/0.1/qm-qua-sdk/docs/Guides/demod/?h=fixed#fixed-point-format) variable that is filled with `{0, 1}` based on the users input, and `ship_acceleration` is a python variable containing the acceleration that the ship should have. `clip_velocity` is a function that clips each component of the ship's velocity to some maximal velocity.
 
-For the asteroids' and rays' are moved slightly differently. In the case for the asteroids':
+For game logic to move the asteroids and rays is slightly different. In the case for the asteroids the logic looks like this:
 ``` python
 # move asteroids
 with for_(j, 0, j<N_asteroids, j+1):
@@ -76,7 +76,7 @@ def ray_hit(ray_x, ray_y, asteroid_x, asteroid_y):
         assign(hit, True)
     return hit
 ```
-Note that the distance is not calculated using the provided [`qm.qua.lib.Math.pow`](https://docs.quantum-machines.co/0.1/qm-qua-sdk/docs/API_references/qua/math/?h=pow#qm.qua.lib.Math.pow) function, as it is not defined for negative inputs for the basis. The `pow` function does not throw an error when tasked to process inputs outside of its defined input rages, but outputs some value and the qua program continues with that incorrect result. To work around this, the square is calculated by multiplying the value with itself. (The here used code has not been optimized or bench marked. I would be interesting to know if saving the result of the subtraction is faster then calculating it twice.)
+Note that the distance is not calculated using the provided [`qm.qua.lib.Math.pow`](https://docs.quantum-machines.co/0.1/qm-qua-sdk/docs/API_references/qua/math/?h=pow#qm.qua.lib.Math.pow) function, as it is not defined for negative base inputs. The `pow` function does not throw an error when tasked to process inputs outside of its defined input ranges, but outputs some value and the qua program continues with that incorrect result. To work around this, the square is calculated by multiplying the value with themselves. (The here used code has not been optimized or bench marked. I would be interesting to know if saving the result of the subtraction is faster then calculating it twice.)
 
 To process the collisions with the border, the position of the ship, rays, and asteroids are clipped using a function like this one:
 ```python
@@ -108,24 +108,23 @@ def clip_velocity(v):
 
 ### User Input
 
-To play around with the [measurement functionality](https://docs.quantum-machines.co/0.1/qm-qua-sdk/docs/Guides/features/?h=measure#measure-statement-features) of the OPX, a basic user input to the Asteroids game was investigated. The Implementation **is just meeting the goal** of playing Asteroids on the OPX. For example, the contrast of the readout is (for the positive side of the controller) not stable: The contrast between a not pressed and pressed button on the positive side of the controller is very small. And the levels also drift around, such that one had to reconfigure the thresholds in the order of ~0.002 (for the positive side) (A method to plot these values and measure that drift is can be commented in). 
+To play around with the [measurement functionality](https://docs.quantum-machines.co/0.1/qm-qua-sdk/docs/Guides/features/?h=measure#measure-statement-features) of the OPX, a basic user input to the Asteroids game was investigated. The Implementation **just fulfills the goal** of playing Asteroids on the OPX. For example, the contrast of the readout is (for the positive side of the controller) not stable: The contrast between a not pressed and pressed button on the positive side of the controller is very small. And the levels also drift around, such that one had to reconfigure the thresholds in the order of ~0.002 (for the positive side) (A method to plot these values and measure that drift is can be commented in). 
 
-There are currently a few unanswered questions that are related to this problem:
-- When measuring for longer duration: Do overflows occur? Can one break the long window into smaller ones, e.g. using a running mean?
-- How does the common mode voltage on the inputs influence the readout? Would an 1:1 operational amplifier before the OPX as an additional layer of safety also help increase the readout contrast? Is this a small fluctuation that is amplified by the overflowing measurement?
-- Can one optimize the circuit? Does a different choice for the resistors increase the readout contrast? Would a low pass just before the OPX smooth increase the stability of the readout method?
+There are currently a few questions that are related to this problem:
+- When measuring for longer duration: Do overflows occur and can one break the long window into smaller ones, e.g. using a running mean, to stay within the variables range?
+- How does the common mode voltage on the inputs influence the readout? Would an 1:1 operational amplifier in front of the OPX inputs as an additional layer of safety also help increase the readout contrast? Is this a small fluctuation that is amplified by the overflowing measurement?
+- Can one optimize the circuit of the controller? Does a different choice for the resistors increase the readout contrast? Would a low pass just before the OPX to smooth the signal increase the stability of the readout method?
 - Does the tested circuit apply unnecessary stress to the OPX? Is this setup capable of running for longer times?
 
-To readout 4 buttons with two input, the following design is tested:
+To readout the 4 buttons with two input, the following design is tested:
 The 4 buttons are grouped into 2 groups, where diodes are used to probe ether side based on the polarity of the readout signal.
-Each button is then connected to a voltage divider that and bridges the R1 resistor with the R2 resistor, and thus changes, based on the choice of the resistors, the voltage at the center of the circuit, which is connected to one of the OPX inputs. Further considerations might be the usage of an low pass or an resistor directly before the OPX inputs.
-(This idea comes form a person with very little electronics experience.)  
+Each button is then connected to a voltage divider where it puts the R2 resistor in parallel to the R1 resistor, and thus changes, based on the choice of the resistors, the voltage at the readout point of the voltage divider when measured to ground. The readout point is then connected to one of the OPX inputs. One might further considerations the usage of an low pass or an inline resistor.
 
 <img src="./circuit.svg" alt="A sketch of the controller circuit." width="400">
 
-The choice of the resistor was chosen as follows:
+The choice of the resistor investigated:
 
-| Resistor | Tested Resistance | 
+| Resistor | Tested Resistance |
 |----------|-------------------|
 | R1 	   | 	  125kOhm 	   |
 | R2 	   |    1kOhm & 0Ohm   |
@@ -134,60 +133,17 @@ The choice of the resistor was chosen as follows:
 To increase the contrast, the resistor R2 was bridged, where as removing R1 might have been a better approach.
 
 ## Binary Encoder
-Simon Humpohl suggested to encode the 4 buttons by bridging increasing resistors. The resistor that is to be bridged by button $R_i = 2^i*R_0$ where the resistor $R_0$ is one resistor in line to limit the current flow when all buttons are pressed, and the resistors $R_1$, ..., $R_4$ are then the resistors that are bridged by the buttons. This way the overall resistivity can be related to the button pressed by means of looking at the binary representation of the measured resistance $R$: $R/R_0$.
-A very clever solution Simon came up with.
+Simon Humpohl suggested to encode the 4 buttons by bridging resistors with increasing resistivity. 5 resistors with doubling resistivity $R_i = 2^i*R_0$ were chosen. The resistor $R_0$ is one resistor in line to limit the current flow when all buttons are pressed, and the resistors $R_1$, ..., $R_4$ are then the resistors that are bridged by the 4 buttons. This way the overall resistivity can be related to the button pressed by means of looking at the binary representation of the measured resistance.
 
 When using a controller based on the binary encoding, only one input of the OPX is required for one user input. Thus two controllers should be supportable. 
 
 ## Problems
 
 ### Overflows 
-As variables can overflow without notifying the user, funky things can happen. One of these things is the burst of rays, that the spaceship fires after some time. 
+As variables can overflow without notifying the user, funky things can happen. One of these things is the burst of rays, that the spaceship fires after the time variable rolls over. 
 
 ### Math Functions 
-Some math functions are only defined for inputs in certain ranges. If they are given values outside of these ranges, the Math functions will still try to compute something, but the results can then easily be (very) wrong. The one writing the programs has to keep this in mind.
+Some math functions are only defined for inputs in certain ranges. If they are given values outside of these ranges, the Math functions will still try to compute something, but the results can then easily be (very) wrong. One has to keep this in mind when writing the programs.
 
 ### Flaky Controller
-The controller is good enough to have some fun in the lab, but might need to be refined when using more intensively. One could refine the here investigated circuit, or choose some other concepts to sense some user input:
-- Buttons that link each one digital output to some input. I.e. 4 digital outputs going to 4 buttons (one for each output) and than all these buttons might be connected to one of the opx's inputs. Then probing each button one by one by applying a voltage to the corresponding digital output
-- Piezoelectric sensors that are amplified by some transistor feed by some analog input. This might be an interesting case to demo lock-in measurements. 
-- Photoresistor that are covered by the users finger. Then Some algorithm to track the resistivity for a pressed and one for a not pressed button might be required to changes in the environments lighting.
-
-
-## Other Findings
-
-The purpose of this project was to get to know the OPX and to help the decision of buying these devices.
-In this process, further insights were noted down. They can be treated as a lab notebook.
-
----
-
-Errors in a qua program that are re are not linked to assigning values to variables that are not of the correct type (in the `declare` statement), the error message does not contain a line number or variable name. E.g. when trying to cast a python number (to a string) to an incorrect qua variable.
-
----
-
-The names of the outputs have to ether be `"single"` or `"I", "Q"`. 
-
----
-
-Statements that mix types incorrectly, e.g.
-``` python
-with if_(False & get_distance(...) < -100):
-```
-result in errors like these
-```
-... - qm - ERROR    - Unexpected error: Failed to compile job
-... - qm - ERROR    - Internal error. Please report it to QM (ts=1676305299758)
-... - qm - ERROR    - Job 1675865789342 failed. Failed to execute program.
-...
-FailedToAddJobToQueueException: Job 1675865789342 failed. Failed to execute program.
-```
-The following order is correct and works:
-``` python
-with if_(get_distance(...) < -100 & False):
-```
-
----
-
-When modulating pulses with some `lo_frequency` and reaching the bounds of the outputs range, the effect of the modulation might be different than when not close to the bounds.
-
----
+The controller is good enough to have some fun in the lab, but might need to be refined when using more intensively. One could refine the here investigated circuit, or choose some other concepts to sense some user input.
