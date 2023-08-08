@@ -6,6 +6,8 @@ Demonstrating the real time capabilities of the [QM OPX](https://www.quantum-mac
 
 The code that was used in the videos posted is saved at the commit ```9474dc6c```. 
 
+Use at your own risk.
+
 ## Installation
 
 ### Software
