@@ -4,6 +4,35 @@ Demonstrating the real time capabilities of the [QM OPX](https://www.quantum-mac
 
 <img src="./Screenshot.png" alt="A photo of an oscilloscope showing a basic implementation of Asteroids and a controller with 4 buttons. The Oscilloscope is placed on top an QM OPX." width="400">
 
+The code that was used in the videos posted is saved at the commit ```9474dc6c```. 
+
+## Installation
+
+### Software
+
+Connecting to the OPX, one can use the [qm-qua package](https://pypi.org/project/qm-qua/). The required python packages can be installed via.
+```
+pip install qm-qua numpy matplotlib pytest
+```
+
+The OPX needs to be reachable from the PC running the python code. The IP of the OPX has to be specified within the asteroids.py file. At the beginning of the asteroids.py file the following line can be found.
+``` python
+qop_ip = '192.168.88.10'
+```
+The IP of the OPX has to be updated here.
+
+Then the game can be stated via
+```
+python asteroids.py
+```
+
+### Hardware
+
+The first 3 analog have to be connected to the oscilloscope. The oscilloscope is then configured such that it plots the output of the first two channels as an XY-Plot. The riding edge on the third channel can be used as a trigger for the drawing process.
+
+The controller is the fed from the fourth analog channel is then used as the input to the controller. The two outputs of the controller are then connected to the two inputs of the OPX. With the current state of the project, the controller has then to be calibrated, which can be done by changing the thresholds in line 447, 449, 457, and 459. To choose these thresholds, you can set the ```CALIBRATION``` flag to ```True``` and observe the plot.
+
+
 ## A Closer Look
 
 The [qua](https://docs.quantum-machines.co/0.1/qm-qua-sdk/docs/API_references/qua/dsl_main/) API allows for programming the OPX's FPGA comparably easy and with very little overhead within python. So the challenge of building Asteroids on the OPX can be boiled down solving the following problems:
@@ -108,6 +137,8 @@ def clip_velocity(v):
 
 ### User Input
 
+**You have to be very sure about what you do! The used Equipment is very expensive.**
+
 To play around with the [measurement functionality](https://docs.quantum-machines.co/0.1/qm-qua-sdk/docs/Guides/features/?h=measure#measure-statement-features) of the OPX, a basic user input to the Asteroids game was investigated. The Implementation **just fulfills the goal** of playing Asteroids on the OPX. For example, the contrast of the readout is (for the positive side of the controller) not stable: The contrast between a not pressed and pressed button on the positive side of the controller is very small. And the levels also drift around, such that one had to reconfigure the thresholds in the order of ~0.002 (for the positive side) (A method to plot these values and measure that drift is can be commented in). 
 
 There are currently a few questions that are related to this problem:
@@ -132,7 +163,7 @@ The choice of the resistor investigated:
 
 To increase the contrast, the resistor R2 was bridged, where as removing R1 might have been a better approach.
 
-## Binary Encoder
+### Binary Encoder
 Simon Humpohl suggested to encode the 4 buttons by bridging resistors with increasing resistivity. 5 resistors with doubling resistivity $R_i = 2^i*R_0$ were chosen. The resistor $R_0$ is one resistor in line to limit the current flow when all buttons are pressed, and the resistors $R_1$, ..., $R_4$ are then the resistors that are bridged by the 4 buttons. This way the overall resistivity can be related to the button pressed by means of looking at the binary representation of the measured resistance.
 
 When using a controller based on the binary encoding, only one input of the OPX is required for one user input. Thus two controllers should be supportable. 

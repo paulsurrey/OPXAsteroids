@@ -13,6 +13,9 @@ from sprites import *
 # TODO implement some smaller programs for testing.
 # TODO fix the units of the measurement
 
+# The IP of the OPX
+qop_ip = '192.168.88.10'
+
 # the size of the field
 # The objects on the field will be able to move in the range of +-1*field_size.
 field_size = 0.5 # V
@@ -67,11 +70,16 @@ wait_time = 1e7/2 # ns
 # the amplitude used to probe the controller.
 input_probe_voltage = .5 # V
 
+# a flag that enables logging and plotting of the user inputs if set to True. This can be used to calibrate the thresholds to read out the controller.
+CALIBRATION = False
+
 # calculating the maximal duration of the readout windows such that no overflow occurs
 # NOTE The variable max_readout_duration is part of an sketch of a IIR low pass measurement that should keept the measured value within the rage of the qua variables. 
 # NOTE But this sketch is mostly a guess. And not tested.
 # NOTE https://docs.quantum-machines.co/0.1/qm-qua-sdk/docs/Guides/demod/?h=fixed#fixed-point-format
 max_readout_duration = np.floor((2**2-0.1)/np.abs(input_probe_voltage)) # in units of ns
+
+
 
 #%%
 
@@ -211,7 +219,6 @@ configuration = {
 
 #%%
 
-qop_ip = '192.168.88.10'
 qmm = QuantumMachinesManager(host=qop_ip)
 
 #%%
@@ -295,7 +302,7 @@ def clip_velocity(v):
     return clip(v, max_speed, -max_speed)
 
 def get_inputs_iir_lowpass(a, b, sign=1):
-    """ This function gets the inputs by not measuring for the whole duration into one fixed variable, but measuring for short duration and averaging over time.
+    """ This function gets the inputs by not measuring for the whole duration into one fixed variable, but measuring for short duration and averaging over time. This is an replacement to get_inputs() but is not tested yet.
 
     This function is not test!
 
@@ -405,15 +412,14 @@ with program() as game:
     ui_forward = declare(fixed, 0)
     ui_fire = declare(bool, False)
 
-
-    # l_stream = declare_stream()
-    # r_stream = declare_stream()
-    # a_stream = declare_stream()
-    # b_stream = declare_stream()
+    if CALIBRATION:
+        l_stream = declare_stream()
+        r_stream = declare_stream()
+        a_stream = declare_stream()
+        b_stream = declare_stream()
 
     # Game loop
-    # with while_(t < 500*time_step_size):
-    with while_(True):
+    with (CALIBRATION and while_(t < 500*time_step_size)) or (while_(True)):
 
         assign(dt, t - t_prim)
         assign(t_prim, t)
@@ -437,21 +443,25 @@ with program() as game:
 
         '''
 
-        get_inputs(a, b, sign=1.0)
+        get_inputs(a, b, sign=1.0) # might be replaceable by the more (hopefully) stable function get_inputs_iir_lowpass()
         with if_(a < 2.467):
             assign(ui_phi, -1)
         with if_(b < 2.939):
             assign(ui_phi, 1)
-        # save(a, l_stream)
-        # save(b, r_stream)
 
-        a, b = get_inputs(a, b, sign=-1.0)
+        if CALIBRATION:
+            save(a, l_stream)
+            save(b, r_stream)
+
+        a, b = get_inputs(a, b, sign=-1.0) # might be replaceable by the more (hopefully) stable function get_inputs_iir_lowpass()
         with if_(a > 2):
             assign(ui_fire, True)
         with elif_(b > 2):
             assign(ui_forward, 1)
-        # save(a, b_stream)
-        # save(b, a_stream)
+
+        if CALIBRATION:
+            save(a, b_stream)
+            save(b, a_stream)
 
 
         # move ship
@@ -542,8 +552,9 @@ with program() as game:
         # update time
         assign(t, t+time_step_size)
 
-    # with stream_processing():
-    #     l_stream.zip(r_stream).zip(a_stream).zip(b_stream).save_all('ms')
+    if CALIBRATION:
+        with stream_processing():
+            l_stream.zip(r_stream).zip(a_stream).zip(b_stream).save_all('ms')
 
 #%%
 
@@ -557,11 +568,13 @@ if __name__ == '__main__':
     else:
         job = qm.execute(game)
         res = job.result_handles
-        # res.wait_for_all_values()
-        # A = res.ms.fetch_all()
-        # a = np.array([list(a) for a in A])
 
-        # plt.plot(a)
-        # plt.show()
+        if CALIBRATION:
+            res.wait_for_all_values()
+            A = res.ms.fetch_all()
+            a = np.array([list(a) for a in A])
 
-        # print(a)
+            plt.plot(a)
+            plt.show()
+
+            print(a)
