@@ -1,4 +1,4 @@
-# Asteroids for the Quantum Machine OPX
+# Asteroids for the Quantum Machines OPX
 
 Demonstrating the real time capabilities of the [QM OPX](https://www.quantum-machines.co/products/opx/) by implementing and playing [Asteroids](https://de.wikipedia.org/wiki/Asteroids) on its FPGA.
 
@@ -13,7 +13,7 @@ The [qua](https://docs.quantum-machines.co/0.1/qm-qua-sdk/docs/API_references/qu
 
 ### Drawing Images
 
-To draw 2D images, the [I/Q output](https://docs.quantum-machines.co/0.1/qm-qua-sdk/docs/Introduction/qua_overview/?h=amp#mixed-inputs-element) of the OPX is used to not feed a I/Q modulator (e.g. [QM's Octave](https://www.quantum-machines.co/products/octave/)) but to directly feed into two inputs of an Oscilloscope, which then plots these two channels in some XY Display. (the `'lo_frequency'` is set to 0Hz.)
+To draw 2D images, the [I/Q output](https://docs.quantum-machines.co/0.1/qm-qua-sdk/docs/Introduction/qua_overview/#mixed-inputs-element) of the OPX is used to not feed a I/Q modulator (e.g. [QM's Octave](https://www.quantum-machines.co/products/octave/)) but to directly feed into two inputs of an Oscilloscope, which then plots these two channels in some XY Display. (the `'lo_frequency'` is set to 0Hz.)
 Using the I/Q output of the OPX allows for the usage of the [`amp()`](https://docs.quantum-machines.co/0.1/qm-qua-sdk/docs/API_references/qua/dsl_main/?h=amp#qm.qua._dsl.amp) function, which allows to mix the I and Q outputs using variables:
 ``` python
 play('pulse_name' * amp(v_00, v_01, v_10, v_11), 'element')
@@ -112,8 +112,8 @@ To play around with the [measurement functionality](https://docs.quantum-machine
 
 There are currently a few questions that are related to this problem:
 - When measuring for longer duration: Do overflows occur and can one break the long window into smaller ones, e.g. using a IIR low pass, to stay within the variables range?
-- How does the common mode voltage on the inputs influence the readout? Would an 1:1 operational amplifier in front of the OPX inputs as an additional layer of safety also help increase the readout contrast? Is this a small fluctuation that is amplified by the overflowing measurement?
-- Can one optimize the circuit of the controller? Does a different choice for the resistors increase the readout contrast? Would a low pass just before the OPX to smooth the signal increase the stability of the readout method?
+- How does the common mode voltage on the inputs influence the readout? Is this a small fluctuation that is amplified by the overflowing measurement? Would an 1:1 operational amplifier in front of the OPX inputs as an additional layer of safety (to limit the bandwidth, voltage, and current of the signal) help?
+- Can one optimize the circuit of the controller? Does a different choice for the resistors increase the readout contrast? Would a low pass before input to the OPX to smooth the signal increase the stability of the readout method?
 - Does the tested circuit apply unnecessary stress to the OPX? Is this setup capable of running for longer times?
 
 To readout the 4 buttons with two input, the following design is tested:
